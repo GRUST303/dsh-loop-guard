@@ -83,25 +83,56 @@ DeepSeek 官方文档明确写着：thinking 模式下 **不支持 `temperature`
 
 ## 安装
 
+> **注意**：`dsh plugin --profile <name> add <target>` 实际是转调 **pnpm**，它只把包写进
+> `dependencies`，**不会**把包名加进 `dsh.profile.bundles`。而 bundle 层才是决定插件
+> 是否加载的地方。下面的第 2 步不能省，否则装完不生效。
+
+### 从 GitHub 安装
+
 ```sh
-dsh plugin --profile <你的 profile> add /path/to/dsh-loop-guard
+# 1) 取到本地并安装为 profile 依赖
+git clone https://github.com/GRUST303/dsh-loop-guard.git
+dsh plugin --profile <你的 profile> add ./dsh-loop-guard
+
+# 或直接作为 git 依赖（同样是 pnpm add）
+dsh plugin --profile <你的 profile> add github:GRUST303/dsh-loop-guard
 ```
 
-或手工两步（在 profile 目录）：
+**2) 把 `dsh-loop-guard` 加进 profile 的 `package.json`：**
 
 ```jsonc
-// package.json
 {
-  "dependencies": { "dsh-loop-guard": "link:/path/to/dsh-loop-guard" },
-  "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-loop-guard"] } }
+  "dependencies": { "dsh-loop-guard": "link:./dsh-loop-guard" },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-loop-guard"        // ← 必须在这一行
+      ]
+    }
+  }
 }
 ```
 
-然后 `pnpm install`，**完整重启 profile**（bundle 层在启动时读取并合成 `cordis.yml`）。
+**3) 在 profile 目录 `pnpm install`，然后完整重启 profile。**
 
-> 依赖 `@deepseek-ai/schemastery`（官方包，从 npm 拉取）。这是插件声明 `Config`
-> 所必需的 —— 用原生 schema 而不是裸 JS 对象，后者会让 cordis 的 `resolveConfig`
-> 抛 `Cannot read properties of undefined (reading 'validate')` 并**让整个 profile 起不来**。
+bundle 层在启动时被读取并合成 `cordis.yml`，所以**必须重启**，HMR 不够。
+
+### 如果你有 DSH 的插件管理器工具
+
+官方推荐路径是用 `plugin_manager` 的 `install_bundle`（它会自己处理安装 + bundle
+选择，不用手工改 `package.json`）：
+
+```
+plugin_manager({ action: "install_bundle", target: "<到 dsh-loop-guard 的绝对路径>" })
+```
+
+### 依赖
+
+`@deepseek-ai/schemastery`（官方包，pnpm 会自动拉取）。插件用它声明 `Config`——
+用原生 schema 而不是裸 JS 对象，后者会让 cordis 的 `resolveConfig` 抛
+`Cannot read properties of undefined (reading 'validate')` 并**让整个 profile 起不来**。
 
 ## 配置
 
