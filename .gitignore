@@ -1,0 +1,15 @@
+# 依赖（用户安装时由 pnpm 拉取；仓库不收录）
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 运行产物
+*.log
+*.tmp

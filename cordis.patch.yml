@@ -1,0 +1,40 @@
+# dsh-loop-guard layer.
+#
+# 一行 host 平面插件：在 `agent/pre-step` 上检测**单条消息内部的重复退化**，
+# 命中阈值时向该步注入破环提醒，阻止纯文本死循环无限空转。
+#
+# 自带设置页：重启后进入 设置 → 插件，可见「循环断路器」页面，
+# 在那里切换档位（保守/平衡/激进）或单独微调任一阈值。
+# 宿主端 watch 该 namespace，**保存即生效，无需再次重启**。
+#
+# 为什么需要它：DSH 自带的 `dsh-repeat-tool-reminder` 只覆盖「重复调用同一个
+# 工具」，那种循环至少还产生 tool call。而 DeepSeek V4.1 Flash 在 thinking 模式
+# 下更常见的故障是**单条消息内部刷屏** —— 一个 tool call 都不产生，
+# 工具级守卫完全够不着。
+#
+# 判据（基于 7884 条真实会话消息实测）：
+#   主判据是「窗口重复密度」—— 滑动窗口内出现次数 >1 的行占比的均值。
+#   它能同时抓住两种循环形态：
+#     单行刷屏        `"</parameter>` ×1729            密度 97.5%
+#     多标记交替滚动   （输出）（生成）（工具调用）      密度 59.7%
+#   而正常内容远低于门槛：
+#     普通文档 / 代码                                    密度  0.0%
+#     含分隔线的 markdown 表格                           密度 15.0%
+#   分位：p90 = 0.3%、p95 = 7.6%、p99 = 17.7%、p100 = 97.5%。
+#
+# 下面的 config 只是**兜底默认值**（宿主未提供 settings 服务时使用）。
+# 实际生效值以设置页为准：settings.register 会以 base + 用户值解析出最终配置。
+- insert:
+    - id: loop-guard
+      name: dsh-loop-guard
+      config:
+        # 档位：conservative | balanced | aggressive（设置页可改）
+        preset: balanced
+        # 以下均可被设置页覆盖，列出仅为可读性与兜底。
+        repeatDensity: 0.35
+        window: 12
+        lineRepeatThreshold: 6
+        contextLineRepeatThreshold: 20
+        minChars: 120
+        crossStepThreshold: 3
+        debug: false
