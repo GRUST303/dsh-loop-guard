@@ -128,11 +128,21 @@ bundle 层在启动时被读取并合成 `cordis.yml`，所以**必须重启**�
 plugin_manager({ action: "install_bundle", target: "<到 dsh-loop-guard 的绝对路径>" })
 ```
 
-### 依赖
+### 依赖（可选）
 
-`@deepseek-ai/schemastery`（官方包，pnpm 会自动拉取）。插件用它声明 `Config`——
-用原生 schema 而不是裸 JS 对象，后者会让 cordis 的 `resolveConfig` 抛
-`Cannot read properties of undefined (reading 'validate')` 并**让整个 profile 起不来**。
+`@deepseek-ai/schemastery`（官方包）用于声明 `Config`。
+
+- **pnpm 正常安装**（`pnpm add <npm 包>`、git 依赖）会**自动拉取**它，无需额外操作。
+- **用 `link:/path` 或本地目录方式安装**时，link 目标**不会自动获得 dependencies**。
+  此时若缺它，插件**仍然正常工作**（核心防循环完全不依赖它），只是设置页不可用。
+  需要设置页就在插件目录先跑一次 `pnpm install`。
+
+插件对缺依赖做了降级：缺 `schemastery` 时 `Config` 为 `undefined`，cordis 会跳过
+schema 校验而不是让整个 profile 起不来。
+
+> 为什么必须用 schemastery 而不能用裸 JS 对象：cordis 的 `resolveConfig()` 要求
+> `Config` 是 Standard Schema（读 `Config["~standard"].validate`）；裸对象会抛
+> `Cannot read properties of undefined (reading 'validate')` **并让整个 profile 起不来**。
 
 ## 配置
 

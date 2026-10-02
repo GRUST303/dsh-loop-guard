@@ -41,7 +41,10 @@ check('不含 await ctx.inject（曾致插件永久挂起）', !hostCode.include
 check('不含 settings.register 调用（legacy，别人环境没有）', !hostCode.includes('settings.register'))
 check('空行必须先排除（曾是 12.5% 误报根因）', hostSrc.includes('if (line.length === 0) continue'))
 check('导出 Config（官方 0.1.7 设置页路径）', hostSrc.includes('export const Config'))
-check('有 import schemastery', hostSrc.includes("from '@deepseek-ai/schemastery'"))
+check(
+  'schemastery 为可选依赖（动态导入 + 缺依赖降级）',
+  hostSrc.includes("await import('@deepseek-ai/schemastery')") && hostSrc.includes('z === undefined ? undefined'),
+)
 check('无 default export（官方禁止与 Config 混用）', !hostCode.includes('export default'))
 
 console.log('\n=== B. package.json 接入 ===')
